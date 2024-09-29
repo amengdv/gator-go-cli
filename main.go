@@ -42,6 +42,7 @@ func main() {
     c.register("addfeed", handlerAddFeed)
     c.register("feeds", handlerFeeds)
     c.register("follow", handlerFollow)
+    c.register("following", handlerFollowing)
 
     argsWithoutProg := os.Args[1:]
 

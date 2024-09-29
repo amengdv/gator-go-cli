@@ -126,7 +126,20 @@ func handlerAddFeed(s *state, cmd command) error {
         Url: url,
         UserID: currUser.ID,
     })
+
     if err != nil {
+        return err
+    }
+
+    _, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+        ID: uuid.New(),
+        CreatedAt: time.Now(),
+        UpdatedAt: time.Now(),
+        UserID: currUser.ID,
+        FeedID: feed.ID,
+    })
+    if err != nil {
+        log.Println("Create feed follow err")
         return err
     }
 
@@ -188,5 +201,29 @@ func handlerFollow(s *state, cmd command) error {
     fmt.Printf("Follower: %v\n", feedFollow.UserName)
     fmt.Printf("Feed: %v\n", feedFollow.FeedName)
 
+    return nil
+}
+
+func handlerFollowing(s *state, cmd command) error {
+    if len(cmd.args) != 0 {
+        return errors.New("following does not take any args")
+    }
+
+    user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+    if err != nil {
+        return err
+    }
+
+    feedFollowByUser, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
+    if err != nil {
+        return err
+    }
+
+    fmt.Printf("Feeds followed by: %v\n", user.Name)
+
+    for _, feeds := range feedFollowByUser {
+        fmt.Printf("Name: %v\n", feeds.FeedName)
+    }
+    
     return nil
 }
