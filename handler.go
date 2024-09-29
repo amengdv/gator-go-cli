@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/amengdv/gator/internal/database"
@@ -92,17 +93,23 @@ func handlerUsers(s *state, cmd command) error {
 }
 
 func handlerAgg(s *state, cmd command) error {
-    if len(cmd.args) != 0 {
-        return errors.New("agg does not take any args")
+    if len(cmd.args) != 1 {
+        return errors.New("agg take only 1 args")
     }
 
-    feed, err := fetchFeed("https://www.wagslane.dev/index.xml")
+    fmt.Printf("Collecting feeds every %v seconds\n", cmd.args[0])
+    time_between_reqs, err := time.ParseDuration(cmd.args[0])
     if err != nil {
         return err
     }
 
-    fmt.Println(feed)
-    return nil
+    ticker := time.NewTicker(time_between_reqs)
+    for ; ; <-ticker.C {
+        err := scrapeFeeds(s)
+        if err != nil {
+            return err
+        }
+    }
 }
 
 func handlerAddFeed(s *state, cmd command, currUser database.User) error {
@@ -232,6 +239,38 @@ func handlerUnfollow(s *state, cmd command, user database.User) error {
     }
 
     log.Println("Successfully unfollow", feed.Name)
+
+    return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+    limit := 2
+    if len(cmd.args) == 1 {
+        num, err := strconv.Atoi(cmd.args[0])
+        if err != nil {
+            return errors.New("browse accept number argument")
+        }
+        limit = num
+    }
+
+    posts, err := s.db.GetPostForUser(context.Background(), database.GetPostForUserParams{
+        UserID: user.ID,
+        Limit: int32(limit),
+    })
+    if err != nil {
+        return err
+    }
+
+    fmt.Println("---------------------------------")
+    fmt.Printf("Posts for %v\n", user.Name)
+    fmt.Println("---------------------------------")
+    for _, post := range posts {
+        fmt.Printf("Title: %v\n", post.Title)
+        fmt.Printf("Link: %v\n", post.Url)
+        fmt.Printf("Description: %v\n", post.Description.String)
+        fmt.Printf("%s from %s\n", post.PublishedAt.Time.Format("Mon Jan 2"), post.FeedName)
+        fmt.Println("---------------------------------")
+    }
 
     return nil
 }
