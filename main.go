@@ -39,10 +39,11 @@ func main() {
     c.register("reset", handlerReset)
     c.register("users", handlerUsers)
     c.register("agg", handlerAgg)
-    c.register("addfeed", handlerAddFeed)
+    c.register("addfeed", middlewareLoggedIn(handlerAddFeed))
     c.register("feeds", handlerFeeds)
-    c.register("follow", handlerFollow)
-    c.register("following", handlerFollowing)
+    c.register("follow", middlewareLoggedIn(handlerFollow))
+    c.register("following", middlewareLoggedIn(handlerFollowing))
+    c.register("unfollow", middlewareLoggedIn(handlerUnfollow))
 
     argsWithoutProg := os.Args[1:]
 
